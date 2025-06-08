@@ -1,5 +1,5 @@
 # Toby 2.0 - ChatGPT Voice Assistant (Starter for Laptop & Raspberry Pi)
-# Repo: Toby2.0-Voice-AI-Assistant
+# Author: EJ Heinz
 
 import os
 import openai
@@ -10,15 +10,16 @@ import pygame
 try:
     import RPi.GPIO as GPIO  # For future Toby 2.0 servo/LED integration
 except ImportError:
-    GPIO = None  # Allow code to run on laptop without Pi GPIO
+    GPIO = None
 
 # ============================
 # CONFIGURATION
 # ============================
-openai.api_key = os.getenv("OPENAI_API_KEY") or "sk-..."  # Replace or use .env
+openai.api_key = os.getenv("OPENAI_API_KEY") or "sk-..."
 VOICE_LANGUAGE = 'en'
 OUTPUT_FILENAME = "response.mp3"
-USE_RPI = False  # Set True on the Raspberry Pi when using GPIO
+USE_RPI = False  # Set to True when running on Raspberry Pi with GPIO/servo code enabled
+WAKE_WORD = "toby"
 
 # GPIO setup placeholder (Toby 2.0)
 if USE_RPI and GPIO:
@@ -32,7 +33,7 @@ if USE_RPI and GPIO:
     GPIO.output(LED_PIN, GPIO.LOW)
 
 # ============================
-# FUNCTION: Speak with gTTS
+# FUNCTION: Speak with gTTS and play via pygame
 # ============================
 def speak_text(text):
     from gtts import gTTS
@@ -45,24 +46,32 @@ def speak_text(text):
         time.sleep(0.1)
 
 # ============================
-# FUNCTION: Record and transcribe
+# FUNCTION: Record from mic and transcribe with Whisper
 # ============================
 def get_user_input():
     r = sr.Recognizer()
     with sr.Microphone() as source:
-        print("Listening...")
+        print("Listening for wake word...")
         audio = r.listen(source)
         try:
             print("Transcribing...")
-            text = r.recognize_whisper_api(audio, api_key=openai.api_key)
+            text = r.recognize_whisper_api(audio, api_key=openai.api_key).lower()
             print(f"You said: {text}")
-            return text
+            if WAKE_WORD in text:
+                print("Wake word detected. Listening for command...")
+                speak_text("Yes?")
+                audio = r.listen(source)
+                command = r.recognize_whisper_api(audio, api_key=openai.api_key)
+                print(f"Command: {command}")
+                return command
+            else:
+                return None
         except Exception as e:
             print(f"Error: {e}")
             return None
 
 # ============================
-# FUNCTION: ChatGPT response
+# FUNCTION: Send to OpenAI and return response
 # ============================
 def get_chatgpt_response(prompt):
     response = openai.ChatCompletion.create(
@@ -84,16 +93,16 @@ if __name__ == "__main__":
             print(f"Assistant: {reply}")
             speak_text(reply)
 
-            # Future Toby 2.0 GPIO actions
+            # Future Toby 2.0 GPIO hooks
             if USE_RPI and GPIO:
                 GPIO.output(LED_PIN, GPIO.HIGH)
                 time.sleep(0.5)
                 GPIO.output(LED_PIN, GPIO.LOW)
-                servo.ChangeDutyCycle(7.5)  # Neutral
+                servo.ChangeDutyCycle(7.5)
                 time.sleep(0.5)
-                servo.ChangeDutyCycle(5)    # Wag left
+                servo.ChangeDutyCycle(5)
                 time.sleep(0.3)
-                servo.ChangeDutyCycle(10)   # Wag right
+                servo.ChangeDutyCycle(10)
                 time.sleep(0.3)
                 servo.ChangeDutyCycle(0)
 
@@ -102,4 +111,4 @@ if __name__ == "__main__":
         if USE_RPI and GPIO:
             servo.stop()
             GPIO.cleanup()
-              
+
