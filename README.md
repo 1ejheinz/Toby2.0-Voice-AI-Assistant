@@ -19,14 +19,23 @@ If on Raspberry Pi:
 ```bash
 pip install RPi.GPIO
 ```
-USE_RPI = False  # Set to True when running on Raspberry Pi 
 
 ### 2. Set your OpenAI API key
+Create an account and key at:
+[https://platform.openai.com/account/api-keys](https://platform.openai.com/account/api-keys)
+
+Add this to your terminal or .env file:
 ```bash
 export OPENAI_API_KEY="sk-..."
 ```
 
-### 3. Run
+### 3. Limit API Usage (Highly Recommended)
+Go to:
+[https://platform.openai.com/account/billing/limits](https://platform.openai.com/account/billing/limits)
+- Set a **monthly hard limit** (e.g. $1–2 max)
+- This protects you from accidental overuse while testing
+
+### 4. Run
 ```bash
 python main.py
 ```
